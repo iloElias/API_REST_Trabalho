@@ -10,9 +10,8 @@ const firebaseConfig = {
     measurementId: "G-DCES35764K"
 };
 
-firebase.initializeAoo(firebaseConfig)
+firebase.initializeApp(firebaseConfig)
 const db = firebase.firestore()
-
 const User = db.collection("Users")
 
-module.exports = Users;
+module.exports = User;
