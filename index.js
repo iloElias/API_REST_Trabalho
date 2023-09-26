@@ -1,16 +1,18 @@
-// Importe as dependências
 const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
+<<<<<<< HEAD
 const axios = require('axios'); 
+=======
+const { v4: uuidv4 } = require('uuid');
+>>>>>>> ff9f02978cdc4a9d9285d6cf2d164f282dd622c1
 
-// Inicialize o aplicativo Express
+// Inicializacao do aplicativo Express
 const app = express();
 app.use(bodyParser.json());
 
-// Dados em memória para produtos (substitua por um banco de dados real posteriormente)
+// Dados em memória para produtos
 const produtos = [];
-const usuarios = [];
 const carrinhoDeCompras = [];
 const pedidos = [];
 
@@ -18,7 +20,7 @@ const pedidos = [];
 const secretKey = 'v4513hv46h3v41hvkj';
 
 // Simulação de banco de dados de usuários
-const users = [];
+const usuarios = [];
 
 // Middleware de autenticação com JWT
 function authenticateToken(req, res, next) {
@@ -34,29 +36,34 @@ function authenticateToken(req, res, next) {
 
 // Endpoint para cadastrar um novo usuário
 app.post('/registro', (req, res) => {
-  const { username, password } = req.body;
-
-  // Verifica se o usuário já existe
-  const existingUser = users.find((user) => user.username === username);
-  if (existingUser) {
-    return res.status(400).send('Usuário já existe.');
-  }
-
-  // Cria um novo usuário
-  const newUser = { username, password };
-  users.push(newUser);
-
-  // Cria e assina um token JWT para o novo usuário
-  const token = jwt.sign({ username }, secretKey);
-  res.status(201).json({ token });
-});
+    const { username, password } = req.body;
+  
+    // Verifica se o nome de usuário e senha foram fornecidos
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Nome de usuário e senha são obrigatórios.' });
+    }
+  
+    // Verifica se o usuário já existe
+    const existingUser = usuarios.find((user) => user.username === username);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Usuário já existe.' });
+    }
+  
+    // Cria um novo usuário
+    const newUser = { username, password };
+    usuarios.push(newUser);
+  
+    // Cria e assina um token JWT para o novo usuário
+    const token = jwt.sign({ username }, secretKey);
+    res.status(201).json({ token });
+  });
 
 // Endpoint para realizar login
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   // Verifica se o usuário existe
-  const user = users.find((user) => user.username === username);
+  const user = usuarios.find((user) => user.username === username);
   if (!user) {
     return res.status(401).send('Credenciais inválidas.');
   }
@@ -81,7 +88,7 @@ app.get('/produtos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const produto = produtos.find(p => p.id === id);
     if (!produto) {
-        res.status(404).json({ message: 'Produto não encontrado' });
+        res.status(404).json({ mensagem: 'Produto não encontrado' });
     } else {
         res.json(produto);
     }
@@ -90,8 +97,31 @@ app.get('/produtos/:id', authenticateToken, (req, res) => {
 // Endpoint para criar um novo produto
 app.post('/produtos', authenticateToken, (req, res) => {
     const novoProduto = req.body;
-    produtos.push(novoProduto);
-    res.status(201).json(novoProduto);
+
+    // Verifique se todas as informações do produto estão presentes no corpo da solicitação
+    if (!novoProduto.nome || !novoProduto.valor || !novoProduto.descricao || !novoProduto.categoria) {
+        return res.status(400).json({ mensagem: 'Todos os campos do produto (nome, valor, descricao, categoria) são obrigatórios.' });
+    }
+    
+    // Gere um ID único para o novo produto usando a biblioteca 'uuid'
+    const novoProdutoComID = {
+        id: uuidv4(), // Gera um ID único
+        nome: novoProduto.nome,
+        valor: novoProduto.valor,
+        descricao: novoProduto.descricao,
+        categoria: novoProduto.categoria
+    };
+
+    // Verifique se o ID é único
+    const idJaExistente = produtos.some((produto) => produto.id === novoProdutoComID.id);
+    if (idJaExistente) {
+        return res.status(400).json({ mensagem: 'ID de produto já existe.' });
+    }
+
+    // Adicione o novo produto à lista de produtos
+    produtos.push(novoProdutoComID);
+
+    res.status(201).json({ produto: novoProdutoComID, mensagem: 'Produto cadastrado com sucesso!' });
 });
 
 // Endpoint para atualizar um produto existente por ID
@@ -99,11 +129,26 @@ app.put('/produtos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const atualizacaoProduto = req.body;
     const produtoIndex = produtos.findIndex(p => p.id === id);
+    
     if (produtoIndex === -1) {
-        res.status(404).json({ message: 'Produto não encontrado' });
+        res.status(404).json({ mensagem: 'Produto não encontrado' });
     } else {
-        produtos[produtoIndex] = { ...produtos[produtoIndex], ...atualizacaoProduto };
-        res.json(produtos[produtoIndex]);
+        // Verifique se o corpo da solicitação não está vazio
+        if (Object.keys(atualizacaoProduto).length === 0) {
+            return res.status(400).json({ mensagem: 'O corpo da solicitação está vazio. Forneça os dados para atualização.' });
+        }
+
+        // Atualize apenas as informações fornecidas no corpo da solicitação
+        const produtoExistente = produtos[produtoIndex];
+        const produtoAtualizado = {
+        //realizar a operação de mesclagem entre os dois objetos
+            ...produtoExistente,
+            ...atualizacaoProduto
+        };
+
+        produtos[produtoIndex] = produtoAtualizado;
+
+        res.json({ produto: produtoAtualizado, mensagem: 'Produto atualizado com sucesso!' });
     }
 });
 
@@ -112,19 +157,19 @@ app.delete('/produtos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const produtoIndex = produtos.findIndex(p => p.id === id);
     if (produtoIndex === -1) {
-        res.status(404).json({ message: 'Produto não encontrado' });
+        res.status(404).json({ mensagem: 'Produto não encontrado' });
     } else {
-        produtos.splice(produtoIndex, 1);
-        res.status(204).send();
+        const produtoExcluido = produtos.splice(produtoIndex, 1)[0]; // Remova o produto e obtenha-o
+        res.status(200).json({ mensagem: `Produto com ID ${id} foi excluído com sucesso.`, produto: produtoExcluido });
     }
 });
 
 // Endpoint para recuperar o conteúdo atual do carrinho de compras de um usuário
 app.get('/carrinho', authenticateToken, (req, res) => {
     // Verifique se o usuário autenticado está associado a um carrinho de compras
-    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.usuarioAutenticado.id);
+    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
     if (!carrinhoUsuario) {
-        return res.json({ message: 'Carrinho de compras vazio' });
+        return res.json({ mensagem: 'Carrinho de compras vazio' });
     }
     res.json(carrinhoUsuario.produtos);
 });
@@ -134,13 +179,13 @@ app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
     const { produtoId, quantidade } = req.body;
     const produtoExistente = produtos.find(p => p.id === produtoId);
     if (!produtoExistente) {
-        return res.status(404).json({ message: 'Produto não encontrado' });
+        return res.status(404).json({ mensagem: 'Produto não encontrado' });
     }
-    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.usuarioAutenticado.id);
+    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
     if (!carrinhoUsuario) {
         // Se não houver um carrinho, crie um novo para o usuário autenticado
         carrinhoDeCompras.push({
-            usuarioId: req.usuarioAutenticado.id,
+            usuarioId: req.user.username,
             produtos: [{ produtoId, quantidade }],
         });
     } else {
@@ -152,97 +197,210 @@ app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
             carrinhoUsuario.produtos.push({ produtoId, quantidade });
         }
     }
-    res.status(201).json({ message: 'Produto adicionado ao carrinho com sucesso' });
+    res.status(201).json({ mensagem: 'Produto adicionado ao carrinho com sucesso' });
+});
+
+// Endpoint para atualizar a quantidade de um produto no carrinho de compras
+app.put('/carrinho/atualizar/:id', authenticateToken, (req, res) => {
+    const produtoId = req.params.id;
+    const { quantidade } = req.body;
+    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
+
+    if (!carrinhoUsuario) {
+        return res.status(404).json({ mensagem: 'Carrinho de compras vazio' });
+    }
+
+    const produtoNoCarrinho = carrinhoUsuario.produtos.find(item => item.produtoId === produtoId);
+    if (!produtoNoCarrinho) {
+        return res.status(404).json({ mensagem: 'Produto não encontrado no carrinho' });
+    }
+
+    // Atualizar a quantidade do produto no carrinho
+    produtoNoCarrinho.quantidade = quantidade;
+
+    res.json({ mensagem: 'Quantidade do produto no carrinho atualizada com sucesso' });
+});
+
+
+// Endpoint para remover um produto do carrinho de compras.
+app.delete('/carrinho/remover/:id', authenticateToken, (req, res) => {
+    const produtoId = req.params.id;
+    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
+
+    if (!carrinhoUsuario) {
+        return res.status(404).json({ mensagem: 'Carrinho de compras vazio' });
+    }
+
+    const produtoIndex = carrinhoUsuario.produtos.findIndex(item => item.produtoId === produtoId);
+    if (produtoIndex === -1) {
+        return res.status(404).json({ mensagem: 'Produto não encontrado no carrinho' });
+    }
+
+    // Remover o produto do carrinho
+    carrinhoUsuario.produtos.splice(produtoIndex, 1);
+
+    res.json({ mensagem: 'Produto removido do carrinho com sucesso' });
 });
 
 
 // Endpoint para recuperar a lista de todos os pedidos feitos pelo usuário
 app.get('/pedidos', authenticateToken, (req, res) => {
-    // Filtra os pedidos do usuário autenticado
-    const pedidosUsuario = pedidos.filter(p => p.usuarioId === req.usuarioAutenticado.id);
+    // Filtra os pedidos feitos pelo usuário autenticado
+    const pedidosUsuario = pedidos.filter(pedido => pedido.usuarioId === req.user.username);
     res.json(pedidosUsuario);
 });
 
 // Endpoint para recuperar os detalhes de um pedido específico com base no ID
-app.get('/pedidos/:id', (req, res) => {
+app.get('/pedidos/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
-    const pedido = pedidos.find(p => p.id === Number(id) && p.usuarioId === req.usuarioAutenticado.id);
+    const pedido = pedidos.find(p => p.id === id && p.usuarioId === req.user.username);
     if (!pedido) {
-        return res.status(404).json({ message: 'Pedido não encontrado' });
+        return res.status(404).json({ mensagem: 'Pedido não encontrado' });
     }
     res.json(pedido);
 });
 
 // Endpoint para criar um novo pedido com base no conteúdo do carrinho de compras
 app.post('/pedidos/criar', authenticateToken, (req, res) => {
-    // Obtenha o conteúdo do carrinho de compras do usuário autenticado
-    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.usuarioAutenticado.id);
+    // Verificar se o carrinho de compras do usuário autenticado existe
+    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
     if (!carrinhoUsuario || carrinhoUsuario.produtos.length === 0) {
-        return res.status(400).json({ message: 'Carrinho de compras vazio. Não é possível criar um pedido.' });
+        return res.status(400).json({ mensagem: 'Carrinho de compras vazio. Não é possível criar um pedido.' });
     }
-    // Crie um novo pedido
+
+    // Criar um novo pedido com base no conteúdo do carrinho de compras
     const novoPedido = {
-        id: pedidos.length + 1,
-        usuarioId: req.usuarioAutenticado.id,
-        produtos: carrinhoUsuario.produtos,
-        status: 'processando',
+        id: uuidv4(), // Gera um ID único para o pedido
+        usuarioId: req.user.username,
+        produtos: [...carrinhoUsuario.produtos], // Copia os produtos do carrinho
+        status: 'Em processamento', // Status inicial do pedido
+        dataCriacao: new Date().toISOString(), // Data de criação do pedido
     };
+
+    // Adicionar o novo pedido à lista de pedidos
     pedidos.push(novoPedido);
-    // Limpe o carrinho de compras do usuário
+
+    // Limpar o carrinho de compras do usuário
     carrinhoUsuario.produtos = [];
-    res.status(201).json(novoPedido);
+
+    res.status(201).json({ pedido: novoPedido, mensagem: 'Pedido criado com sucesso!' });
 });
 
 // Endpoint para atualizar o status de um pedido
 app.put('/pedidos/atualizar/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
     const novoStatus = req.body.status;
-    const pedido = pedidos.find(p => p.id === Number(id) && p.usuarioId === req.usuarioAutenticado.id);
+
+    // Verificar se o pedido existe e pertence ao usuário autenticado
+    const pedido = pedidos.find(p => p.id === id && p.usuarioId === req.user.username);
     if (!pedido) {
-        return res.status(404).json({ message: 'Pedido não encontrado' });
+        return res.status(404).json({ mensagem: 'Pedido não encontrado' });
     }
+
+    // Atualizar o status do pedido
     pedido.status = novoStatus;
-    res.json(pedido);
+
+    res.json({ pedido, mensagem: 'Status do pedido atualizado com sucesso!' });
 });
 
 // Endpoint para cancelar um pedido
 app.delete('/pedidos/cancelar/:id', authenticateToken, (req, res) => {
     const id = req.params.id;
-    const pedidoIndex = pedidos.findIndex(p => p.id === Number(id) && p.usuarioId === req.usuarioAutenticado.id);
+
+    // Verificar se o pedido existe e pertence ao usuário autenticado
+    const pedidoIndex = pedidos.findIndex(p => p.id === id && p.usuarioId === req.user.username);
     if (pedidoIndex === -1) {
-        return res.status(404).json({ message: 'Pedido não encontrado' });
+        return res.status(404).json({ mensagem: 'Pedido não encontrado' });
     }
-    // Remova o pedido da lista de pedidos
-    pedidos.splice(pedidoIndex, 1);
-    res.status(204).send();
+
+    // Remover o pedido da lista de pedidos
+    const pedidoCancelado = pedidos.splice(pedidoIndex, 1)[0];
+
+    res.status(200).json({ mensagem: `Pedido com ID ${id} foi cancelado com sucesso.`, pedido: pedidoCancelado });
 });
+
 
 // Endpoint para deixar uma avaliação para um produto
 app.post('/produtos/:id/avaliacao', authenticateToken, (req, res) => {
     const id = req.params.id;
-    const { avaliacao } = req.body;
-    // Aqui, assumimos que a avaliação é associada ao produto por seu ID
+    const { nota } = req.body;
+
+    // Verificar se o produto existe
     const produto = produtos.find(p => p.id === id);
     if (!produto) {
-        return res.status(404).json({ message: 'Produto não encontrado' });
+        return res.status(404).json({ mensagem: 'Produto não encontrado' });
     }
-    // Armazenar
-    produto.avaliacao = avaliacao;
-    res.status(201).json({ message: 'Avaliação adicionada com sucesso' });
+
+    // Verificar se a nota é válida
+    if (nota < 1 || nota > 5) {
+        return res.status(400).json({ mensagem: 'A nota deve estar entre 1 e 5' });
+    }
+
+    // Criar a avaliação
+    const novaAvaliacao = {
+        usuarioId: req.user.username,
+        nota
+    };
+
+    // Adicionar a avaliação ao produto
+    if (!produto.avaliacoes) {
+        produto.avaliacoes = [novaAvaliacao];
+    } else {
+        produto.avaliacoes.push(novaAvaliacao);
+    }
+
+    res.status(201).json({ mensagem: 'Avaliação adicionada com sucesso' });
 });
 
-// Endpoint para deixar um comentário em um produto
+// Endpoint para recuperar as avaliações de um produto específico.
+app.get('/produtos/:id/avaliacoes', (req, res) => {
+    const id = req.params.id;
+    const produto = produtos.find(p => p.id === id);
+
+    if (!produto || !produto.avaliacoes) {
+        return res.status(404).json({ mensagem: 'Produto não encontrado ou sem avaliações' });
+    }
+
+    res.json(produto.avaliacoes);
+});
+
+// Endpoint para deixar um comentário em um produto específico.
 app.post('/produtos/:id/comentario', authenticateToken, (req, res) => {
     const id = req.params.id;
     const { comentario } = req.body;
-    // Aqui, assumimos que o comentário é associado ao produto por seu ID
+
+    // Verificar se o produto existe
     const produto = produtos.find(p => p.id === id);
     if (!produto) {
-        return res.status(404).json({ message: 'Produto não encontrado' });
+        return res.status(404).json({ mensagem: 'Produto não encontrado' });
     }
-    // Armazenar o comentário
-    produto.comentario = comentario;
-    res.status(201).json({ message: 'Comentário adicionado com sucesso' });
+
+    // Criar o comentário
+    const novoComentario = {
+        usuarioId: req.user.username,
+        comentario,
+    };
+
+    // Adicionar o comentário ao produto
+    if (!produto.comentarios) {
+        produto.comentarios = [novoComentario];
+    } else {
+        produto.comentarios.push(novoComentario);
+    }
+
+    res.status(201).json({ mensagem: 'Comentário adicionado com sucesso' });
+});
+
+// Endpoint para recuperar os comentários de um produto específico.
+app.get('/produtos/:id/comentarios', (req, res) => {
+    const id = req.params.id;
+    const produto = produtos.find(p => p.id === id);
+
+    if (!produto || !produto.comentarios) {
+        return res.status(404).json({ mensagem: 'Produto não encontrado ou sem comentários' });
+    }
+
+    res.json(produto.comentarios);
 });
 
 // Endpoint para finalizar a compra e obter informações do CEP
