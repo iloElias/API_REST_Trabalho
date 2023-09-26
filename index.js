@@ -1,11 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-<<<<<<< HEAD
 const axios = require('axios'); 
-=======
+
 const { v4: uuidv4 } = require('uuid');
->>>>>>> ff9f02978cdc4a9d9285d6cf2d164f282dd622c1
 
 // Inicializacao do aplicativo Express
 const app = express();
@@ -175,7 +173,46 @@ app.get('/carrinho', authenticateToken, (req, res) => {
 });
 
 // Endpoint para adicionar um produto ao carrinho de compras
-app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
+
+// Função para gerar um ID de carrinho único
+function generateCartId() {
+    return uuidv4();
+  }
+  
+  // Endpoint para adicionar um produto ao carrinho de compras
+  app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
+      const { produtoId, quantidade } = req.body;
+      const produtoExistente = produtos.find(p => p.id === produtoId);
+      if (!produtoExistente) {
+          return res.status(404).json({ mensagem: 'Produto não encontrado' });
+      }
+      
+      // Verifique se o usuário já possui um carrinho
+      let carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
+      
+      // Se o usuário não tiver um carrinho, crie um novo e gere um ID
+      if (!carrinhoUsuario) {
+          const carrinhoId = generateCartId();
+          carrinhoUsuario = {
+              carrinhoId,
+              usuarioId: req.user.username,
+              produtos: [{ produtoId, quantidade }],
+          };
+          
+          carrinhoDeCompras.push(carrinhoUsuario);
+      } else {
+          // Se já existir um carrinho, adicione o produto ao carrinho existente
+          const produtoNoCarrinho = carrinhoUsuario.produtos.find(item => item.produtoId === produtoId);
+          if (produtoNoCarrinho) {
+              produtoNoCarrinho.quantidade += quantidade;
+          } else {
+              carrinhoUsuario.produtos.push({ produtoId, quantidade });
+          }
+      }
+      res.status(201).json({ CarrinhoId: carrinhoUsuario.carrinhoId, mensagem: 'Produto adicionado ao carrinho com sucesso' });
+  });
+
+/* app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
     const { produtoId, quantidade } = req.body;
     const produtoExistente = produtos.find(p => p.id === produtoId);
     if (!produtoExistente) {
@@ -185,6 +222,7 @@ app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
     if (!carrinhoUsuario) {
         // Se não houver um carrinho, crie um novo para o usuário autenticado
         carrinhoDeCompras.push({
+            id: uuidv4(),
             usuarioId: req.user.username,
             produtos: [{ produtoId, quantidade }],
         });
@@ -198,7 +236,7 @@ app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
         }
     }
     res.status(201).json({ mensagem: 'Produto adicionado ao carrinho com sucesso' });
-});
+}); */
 
 // Endpoint para atualizar a quantidade de um produto no carrinho de compras
 app.put('/carrinho/atualizar/:id', authenticateToken, (req, res) => {
@@ -221,7 +259,6 @@ app.put('/carrinho/atualizar/:id', authenticateToken, (req, res) => {
     res.json({ mensagem: 'Quantidade do produto no carrinho atualizada com sucesso' });
 });
 
-
 // Endpoint para remover um produto do carrinho de compras.
 app.delete('/carrinho/remover/:id', authenticateToken, (req, res) => {
     const produtoId = req.params.id;
@@ -241,7 +278,6 @@ app.delete('/carrinho/remover/:id', authenticateToken, (req, res) => {
 
     res.json({ mensagem: 'Produto removido do carrinho com sucesso' });
 });
-
 
 // Endpoint para recuperar a lista de todos os pedidos feitos pelo usuário
 app.get('/pedidos', authenticateToken, (req, res) => {
@@ -318,7 +354,6 @@ app.delete('/pedidos/cancelar/:id', authenticateToken, (req, res) => {
 
     res.status(200).json({ mensagem: `Pedido com ID ${id} foi cancelado com sucesso.`, pedido: pedidoCancelado });
 });
-
 
 // Endpoint para deixar uma avaliação para um produto
 app.post('/produtos/:id/avaliacao', authenticateToken, (req, res) => {
@@ -434,7 +469,7 @@ app.get('/conversao-moeda/:valor/:moedaOrigem/:moedaDestino', authenticateToken,
     const valor = req.params.valor;
     const moedaOrigem = req.params.moedaOrigem;
     const moedaDestino = req.params.moedaDestino;
-    const apiKey = 'v4513hv46h3v41hvkj'; 
+    const apiKey = 'd1a27cfa622148bd90cc2094'; 
   
     // Faz a requisição da API ExchangeRate-API para obter a taxa de conversão
     try {
