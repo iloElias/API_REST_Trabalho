@@ -2,6 +2,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
+const axios = require('axios'); 
 
 // Inicialize o aplicativo Express
 const app = express();
@@ -244,7 +245,61 @@ app.post('/produtos/:id/comentario', authenticateToken, (req, res) => {
     res.status(201).json({ message: 'Comentário adicionado com sucesso' });
 });
 
+// Endpoint para finalizar a compra e obter informações do CEP
+app.get('/finalizar-compra/:carrinhoId/:cep', authenticateToken, async (req, res) => {
+  const carrinhoId = req.params.carrinhoId;
+  const cep = req.params.cep;
 
+  // Validador do formato de CPF
+  if (!/^\d{8}$/.test(cep)) {
+    return res.status(400).json({ message: 'CEP no formato inválido' });
+  }
+
+  // Requisição da API ViaCEP para obter os dados do CEP
+  try {
+    const response = await axios.get(`https://viacep.com.br/ws/${cep}/json/`);
+    const endereco = response.data;
+
+    if (endereco.erro) {
+      return res.status(404).json({ message: 'CEP Inexistente' });
+    }
+
+    res.json(endereco);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao obter dados do CEP' });
+  }
+});
+
+// Endpoint para realizar a conversão de moeda
+app.get('/conversao-moeda/:valor/:moedaOrigem/:moedaDestino', authenticateToken, async (req, res) => {
+    const valor = req.params.valor;
+    const moedaOrigem = req.params.moedaOrigem;
+    const moedaDestino = req.params.moedaDestino;
+    const apiKey = 'v4513hv46h3v41hvkj'; 
+  
+    // Faz a requisição da API ExchangeRate-API para obter a taxa de conversão
+    try {
+      const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/${moedaOrigem}`);
+      const data = response.data;
+  
+      // Verifica se a moeda de origem e destino são válidas
+      if (!data.conversion_rates || !data.conversion_rates[moedaDestino]) {
+        return res.status(400).json({ message: 'Moeda de origem ou destino inválida' });
+      }
+  
+      // Realiza a conversão de moeda
+      const taxaDeCambio = data.conversion_rates[moedaDestino];
+      const valorConvertido = valor * taxaDeCambio;
+  
+      // Retorna o valor convertido como desejado
+      res.json({ valorConvertido });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Erro na conversão de moeda' });
+    }
+  });
+  
 // Inicie o servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
