@@ -212,32 +212,6 @@ function generateCartId() {
       res.status(201).json({ CarrinhoId: carrinhoUsuario.carrinhoId, mensagem: 'Produto adicionado ao carrinho com sucesso' });
   });
 
-/* app.post('/carrinho/adicionar', authenticateToken, (req, res) => {
-    const { produtoId, quantidade } = req.body;
-    const produtoExistente = produtos.find(p => p.id === produtoId);
-    if (!produtoExistente) {
-        return res.status(404).json({ mensagem: 'Produto não encontrado' });
-    }
-    const carrinhoUsuario = carrinhoDeCompras.find(c => c.usuarioId === req.user.username);
-    if (!carrinhoUsuario) {
-        // Se não houver um carrinho, crie um novo para o usuário autenticado
-        carrinhoDeCompras.push({
-            id: uuidv4(),
-            usuarioId: req.user.username,
-            produtos: [{ produtoId, quantidade }],
-        });
-    } else {
-        // Se já existir um carrinho, adicione o produto ao carrinho existente
-        const produtoNoCarrinho = carrinhoUsuario.produtos.find(item => item.produtoId === produtoId);
-        if (produtoNoCarrinho) {
-            produtoNoCarrinho.quantidade += quantidade;
-        } else {
-            carrinhoUsuario.produtos.push({ produtoId, quantidade });
-        }
-    }
-    res.status(201).json({ mensagem: 'Produto adicionado ao carrinho com sucesso' });
-}); */
-
 // Endpoint para atualizar a quantidade de um produto no carrinho de compras
 app.put('/carrinho/atualizar/:id', authenticateToken, (req, res) => {
     const produtoId = req.params.id;
